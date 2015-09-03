@@ -11,4 +11,5 @@ type Response struct {
 		ErrorMessage string `json:"error_message"`
 		ErrorType    string `json:"error_type"`
 	} `json:"meta"`
+	Pagination map[string]string `json:"pagination"`
 }
