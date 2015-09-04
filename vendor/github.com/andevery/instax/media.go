@@ -100,7 +100,7 @@ func (f *MediaFeed) CanNext() bool {
 }
 
 func (f *MediaFeed) do(values *url.Values) ([]Media, error) {
-	path := fmt.Sprintf("%s/%s/media/recent", f.endPoint, f.query)
+	path := fmt.Sprintf("/%s/%s/media/recent", f.endPoint, f.query)
 
 	resp, err := f.client.do("GET", path, values)
 	if err != nil {

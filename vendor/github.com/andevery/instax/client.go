@@ -1,13 +1,19 @@
 package instax
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 )
@@ -33,13 +39,15 @@ type Client struct {
 	rateLimitRemaining uint32
 	httpClient         *http.Client
 	accessToken        string
+	secret             string
 }
 
-func NewClient(accessToken string) *Client {
+func NewClient(accessToken, secret string) *Client {
 	return &Client{
 		rateLimitRemaining: 5000,
 		accessToken:        accessToken,
 		httpClient:         new(http.Client),
+		secret:             secret,
 	}
 }
 
@@ -47,15 +55,34 @@ func (c *Client) Limit() uint32 {
 	return atomic.LoadUint32(&c.rateLimitRemaining)
 }
 
+func generateSig(endpoint, secret string, values *url.Values) string {
+	var keys []string
+	for k := range *values {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	params := []string{endpoint}
+	for _, k := range keys {
+		params = append(params, fmt.Sprintf("%s=%s", k, values.Get(k)))
+	}
+	sig := strings.Join(params, "|")
+
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(sig))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
 func (c *Client) do(method, path string, values *url.Values) (*Response, error) {
 	if c.Delayer != nil {
-		time.Sleep(c.Delayer())
+		d := c.Delayer()
+		time.Sleep(d)
 	}
 
 	u := &url.URL{
 		Scheme: apiScheme,
 		Host:   apiHost,
-		Path:   fmt.Sprintf("/%s/%s", apiVersion, path),
+		Path:   fmt.Sprintf("/%s%s", apiVersion, path),
 	}
 
 	if values == nil {
@@ -63,7 +90,11 @@ func (c *Client) do(method, path string, values *url.Values) (*Response, error) 
 	}
 
 	values.Add("access_token", c.accessToken)
+	sig := generateSig(path, c.secret, values)
+	values.Add("sig", sig)
 	u.RawQuery = values.Encode()
+
+	log.Println(u.String())
 
 	req, err := http.NewRequest(method, u.String(), nil)
 	if err != nil {
@@ -99,7 +130,7 @@ func (c *Client) do(method, path string, values *url.Values) (*Response, error) 
 }
 
 func (c *Client) Media(id string) (*Media, error) {
-	path := fmt.Sprintf("media/%s", id)
+	path := fmt.Sprintf("/media/%s", id)
 
 	resp, err := c.do("GET", path, nil)
 	if err != nil {
@@ -136,7 +167,7 @@ func (c *Client) MediaForUser(userID string) *MediaFeed {
 }
 
 func (c *Client) Likes(mediaID string) ([]UserShort, error) {
-	path := fmt.Sprintf("media/%s/likes", mediaID)
+	path := fmt.Sprintf("/media/%s/likes", mediaID)
 
 	resp, err := c.do("GET", path, nil)
 	if err != nil {
@@ -153,7 +184,7 @@ func (c *Client) Likes(mediaID string) ([]UserShort, error) {
 }
 
 func (c *Client) Like(mediaID string) error {
-	path := fmt.Sprintf("media/%s/likes", mediaID)
+	path := fmt.Sprintf("/media/%s/likes", mediaID)
 
 	_, err := c.do("POST", path, nil)
 	if err != nil {
@@ -164,7 +195,7 @@ func (c *Client) Like(mediaID string) error {
 }
 
 func (c *Client) User(userID string) (*User, error) {
-	path := fmt.Sprintf("users/%s", userID)
+	path := fmt.Sprintf("/users/%s", userID)
 
 	resp, err := c.do("GET", path, nil)
 	if err != nil {
