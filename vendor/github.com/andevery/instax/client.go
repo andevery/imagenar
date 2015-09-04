@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"sync/atomic"
+	"time"
 )
 
 // "encoding/json"
@@ -21,7 +22,14 @@ const (
 	apiVersion = "v1"
 )
 
+var (
+	RateLimitException = errors.New("The maximum number of requests per hour has been exceeded.")
+)
+
+type DelayerFunc func() time.Duration
+
 type Client struct {
+	Delayer            DelayerFunc
 	rateLimitRemaining uint32
 	httpClient         *http.Client
 	accessToken        string
@@ -40,6 +48,10 @@ func (c *Client) Limit() uint32 {
 }
 
 func (c *Client) do(method, path string, values *url.Values) (*Response, error) {
+	if c.Delayer != nil {
+		time.Sleep(c.Delayer())
+	}
+
 	u := &url.URL{
 		Scheme: apiScheme,
 		Host:   apiHost,
@@ -76,11 +88,14 @@ func (c *Client) do(method, path string, values *url.Values) (*Response, error) 
 	limit, err := strconv.ParseUint(resp.Header.Get("X-Ratelimit-Remaining"), 10, 64)
 	atomic.StoreUint32(&c.rateLimitRemaining, uint32(limit))
 
-	if r.Meta.Code != 200 {
+	switch r.Meta.Code {
+	case 200:
+		return &r, nil
+	case 429:
+		return nil, RateLimitException
+	default:
 		return nil, errors.New(r.Meta.ErrorMessage)
 	}
-
-	return &r, nil
 }
 
 func (c *Client) Media(id string) (*Media, error) {
