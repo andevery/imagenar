@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"sort"
@@ -90,11 +89,9 @@ func (c *Client) do(method, path string, values *url.Values) (*Response, error) 
 	}
 
 	values.Add("access_token", c.accessToken)
-	sig := generateSig(path, c.secret, values)
-	values.Add("sig", sig)
+	// sig := generateSig(path, c.secret, values)
+	// values.Add("sig", sig)
 	u.RawQuery = values.Encode()
-
-	log.Println(u.String())
 
 	req, err := http.NewRequest(method, u.String(), nil)
 	if err != nil {
@@ -144,6 +141,23 @@ func (c *Client) Media(id string) (*Media, error) {
 	}
 
 	return &m, nil
+}
+
+func (c *Client) RecentMediaByUser(userID string) ([]Media, error) {
+	path := fmt.Sprintf("/users/%s/media/recent", userID)
+
+	resp, err := c.do("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var m []Media
+	err = json.Unmarshal(resp.Data, &m)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
 func (c *Client) MediaByTag(tag string) *MediaFeed {
