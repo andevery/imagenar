@@ -89,8 +89,6 @@ func (c *Client) do(method, path string, values *url.Values) (*Response, error) 
 	}
 
 	values.Add("access_token", c.accessToken)
-	// sig := generateSig(path, c.secret, values)
-	// values.Add("sig", sig)
 	u.RawQuery = values.Encode()
 
 	req, err := http.NewRequest(method, u.String(), nil)
