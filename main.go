@@ -148,7 +148,7 @@ func (l *Liker) Start() {
 
 func main() {
 
-	// client := instax.NewClient("2079178474.1fb234f.682a311e35334df3842ccb654516baf5 ", "5ac3e50811cc47c2a4cd1adda782eb4b")
+	// client := instax.NewClient("2079178474.1fb234f.682a311e35334df3842ccb654516baf5", "5ac3e50811cc47c2a4cd1adda782eb4b")
 	// client.Delayer = func() time.Duration {
 	// 	return time.Duration(rand.Intn(6000)+3000) * time.Millisecond
 	// }
@@ -163,12 +163,26 @@ func main() {
 	// liker := NewLiker([]string{"деньгорода"}, client, wc)
 	// liker.Start()
 
-	c := time.Tick(1 * time.Second)
-	time.Sleep(3 * time.Second)
-	for now := range c {
-		fmt.Printf("%v - %v\n", now, time.Now())
-	}
+	go func() {
+		c := make(chan bool)
+		go func() {
+			for {
+				select {
+				case <-c:
+					return
+				default:
+					fmt.Printf("%v\n", time.Now())
+					time.Sleep(1 * time.Second)
+				}
+			}
+		}()
+		time.Sleep(5 * time.Second)
+		c <- true
+	}()
 
+	time.Sleep(10 * time.Second)
+
+	// time.Sleep(10 * time.Second)
 	// feed := client.MediaByTag("animallovers")
 	// m, _ := feed.Get()
 	// CheckAndLike(client, m)
