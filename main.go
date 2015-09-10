@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/andevery/autogram"
 	"github.com/andevery/instaw"
 	"github.com/andevery/instax"
 	"log"
@@ -163,21 +164,22 @@ func main() {
 	// liker := NewLiker([]string{"деньгорода"}, client, wc)
 	// liker.Start()
 
+	l := autogram.NewLimiter()
 	go func() {
-		c := make(chan bool)
-		go func() {
-			for {
-				select {
-				case <-c:
-					return
-				default:
-					fmt.Printf("%v\n", time.Now())
-					time.Sleep(1 * time.Second)
-				}
+		for {
+			t, ok := <-l.Timer
+			if !ok {
+				fmt.Println("Exiting")
+				return
 			}
-		}()
+
+			fmt.Printf("%v\n", t)
+		}
+	}()
+
+	go func() {
 		time.Sleep(5 * time.Second)
-		c <- true
+		l.Stop()
 	}()
 
 	time.Sleep(10 * time.Second)
