@@ -53,9 +53,9 @@ func (l *Limiter) startTimer() {
 		for {
 			select {
 			case <-l.tickers.day.C:
-				l.counters.day = 0
+				atomic.StoreUint32(&l.counters.day, 0)
 			case <-l.tickers.hour.C:
-				l.counters.hour = 0
+				atomic.StoreUint32(&l.counters.hour, 0)
 			case <-l.done:
 				close(l.Timer)
 				l.tickers.day.Stop()
