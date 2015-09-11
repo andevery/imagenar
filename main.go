@@ -167,13 +167,13 @@ func main() {
 	l := autogram.NewLimiter()
 	go func() {
 		for {
-			t, ok := <-l.Timer
+			_, ok := <-l.Timer
 			if !ok {
 				fmt.Println("Exiting")
 				return
 			}
 
-			fmt.Printf("%v\n", t)
+			fmt.Printf("Hour: %v\n", l.HourAmount())
 		}
 	}()
 
