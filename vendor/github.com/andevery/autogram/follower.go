@@ -30,7 +30,7 @@ func (f *Follower) FollowBatch(users []instax.User) {
 				media, err := f.ApiClient.RecentMediaByUser(users[i].ID)
 				if err == nil {
 					count := rand.Intn(3) + 2
-					f.Liker.BatchLike(media, count)
+					f.Liker.LikeFew(media, count)
 				}
 			}
 			<-f.Limiter.Timer
