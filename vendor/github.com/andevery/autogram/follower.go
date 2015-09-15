@@ -1,7 +1,9 @@
 package autogram
 
 import (
+	"math/rand"
 	// "time"
+	"github.com/andevery/instaw"
 	"github.com/andevery/instax"
 )
 
@@ -17,16 +19,27 @@ type Follower struct {
 		MaxMedia      int
 	}
 
-	Insta *instax.Client
+	WebClient *instaw.Client
+	ApiClient *instax.Client
 }
 
 func (f *Follower) FollowBatch(users []instax.User) {
 	for i, _ := range users {
-
+		if f.isUserMatch(&users[i]) {
+			if f.WithLikes {
+				media, err := f.ApiClient.RecentMediaByUser(users[i].ID)
+				if err == nil {
+					count := rand.Intn(3) + 2
+					f.Liker.BatchLike(media, count)
+				}
+			}
+			<-f.Limiter.Timer
+			f.WebClient.Follow(&users[i])
+		}
 	}
 }
 
-func (f *Follower) isUserMathc(user *instax.User) bool {
+func (f *Follower) isUserMatch(user *instax.User) bool {
 	flag := true
 	if f.UsersCondition.MaxFollowedBy > 0 {
 		flag = flag && user.Counts.FollowedBy <= f.UsersCondition.MaxFollowedBy
