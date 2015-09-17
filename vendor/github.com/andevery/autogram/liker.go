@@ -13,11 +13,7 @@ type Liker struct {
 }
 
 func (l *Liker) LikeAFew(media []instax.Media, count int) {
-
-}
-
-func (l *Liker) LikeABatch(media []instax.Media) {
-	for i, _ := range media {
+	for _, i := range randomIndexes(len(media), count) {
 		if l.isMediaMatch(&media[i]) {
 			<-l.Limiter.Timer
 			l.WebClient.Like(&media[i])
@@ -25,6 +21,10 @@ func (l *Liker) LikeABatch(media []instax.Media) {
 	}
 }
 
+func (l *Liker) LikeABatch(media []instax.Media) {
+	l.LikeAFew(media, len(media))
+}
+
 func (l *Liker) isMediaMatch(media *instax.Media) bool {
-	return true
+	return !media.UserHasLiked
 }

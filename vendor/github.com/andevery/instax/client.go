@@ -41,12 +41,11 @@ type Client struct {
 	secret             string
 }
 
-func NewClient(accessToken, secret string) *Client {
+func NewClient(accessToken string) *Client {
 	return &Client{
 		rateLimitRemaining: 5000,
 		accessToken:        accessToken,
 		httpClient:         new(http.Client),
-		secret:             secret,
 	}
 }
 
