@@ -45,7 +45,7 @@ func main() {
 	f.UsersCondition.MinFollows = 100
 	f.UsersCondition.MinMedia = 50
 
-	us, err := apiClient.Likes("1075742416772351338")
+	us, err := apiClient.Likes("1063050685134653313")
 	if err != nil {
 		log.Fatal(err)
 	}

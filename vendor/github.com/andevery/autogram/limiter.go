@@ -29,8 +29,8 @@ type Limiter struct {
 
 func NewLimiter() *Limiter {
 	limiter := &Limiter{
-		MaxDelay: 30 * time.Second,
-		MinDelay: 10 * time.Second,
+		MaxDelay: 25 * time.Second,
+		MinDelay: 15 * time.Second,
 	}
 	limiter.Rate.HourLimit = 60
 	limiter.Timer = make(chan time.Time)
