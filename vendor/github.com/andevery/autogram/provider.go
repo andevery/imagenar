@@ -66,16 +66,48 @@ func (p *Provider) setNextMediaFeed() (err error) {
 	}
 
 	p.state.queryNum++
+	p.state.step = 0
 }
 
 func (p *Provider) NextUsers() ([]instax.UserShort, error) {
 	var err error
 	if p.state.subStep >= len(p.state.media) {
+		p.state.subStep = 0
 		p.state.media, err = p.NextMedia()
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	users, err := p.client.Likes(p.state.media[p.state.subStep].ID)
+	if err != nil {
+		return nil, err
+	}
+	p.state.subStep++
+
+	return users, nil
+}
+
+func (p *Provider) NextMedia() ([]instax.Media, error) {
+	var media []instax.Media
+	var err error
+
+	if p.state.step == 0 {
+		media, err = p.state.mediaFeed.Get()
+	} else if p.state.mediaFeed.CanNext() {
+		media, err = p.state.mediaFeed.Next()
+	} else {
+		if err = p.setNextMediaFeed(); err == nil {
+			media, err = p.state.mediaFeed.Get()
+		}
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	p.state.step++
+	return media, err
 }
 
 func (p *Provider) Next() *Data {
