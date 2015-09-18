@@ -2,7 +2,9 @@ package autogram
 
 import (
 	"errors"
+	"github.com/andevery/instaw"
 	"github.com/andevery/instax"
+	"time"
 )
 
 type Source int
@@ -11,18 +13,19 @@ const (
 	TAGS Source = iota
 	MEDIA
 	FOLLOWERS
+	NONE
 )
 
 var (
-	UknownSource   = errors.New("Unknown source")
-	NotImplemented = errors.New("Not implemented")
+	UknownSource   = errors.New("Unknown provider source")
+	NotImplemented = errors.New("Source not implemented")
 	EOF            = errors.New("End of feed")
 )
 
 type Provider struct {
-	source Source
-	client *instax.Client
+	Limiter
 
+	source  Source
 	queries []string
 
 	state struct {
@@ -34,18 +37,39 @@ type Provider struct {
 	}
 }
 
-func NewProvider(src Source, client *instax.Client, q []string) (*Provider, error) {
-	p := &Provider{source: src, client: client, queries: q}
+func NewProvider(src Source, q []string, api *instax.Client, web *instaw.Client) (*Provider, error) {
+	p := &Provider{
+		source:  src,
+		queries: q,
+	}
+	p.apiClient = api
+	p.webClient = web
+
 	switch src {
 	case TAGS, MEDIA:
 		p.setNextMediaFeed()
 	case FOLLOWERS:
 		return nil, NotImplemented
+	case NONE:
 	default:
 		return nil, UknownSource
 	}
 
+	p.MaxDelay = 25 * time.Second
+	p.MinDelay = 15 * time.Second
+	p.Rate.HourLimit = 60
+	p.timer = make(chan time.Time)
+	p.done = make(chan bool)
+	p.webTickers.day = time.NewTicker(24 * time.Hour)
+	p.webTickers.hour = time.NewTicker(1 * time.Hour)
+
+	p.Start()
+
 	return p, nil
+}
+
+func EmptyProvider(api *instax.Client, web *instaw.Client) (*Provider, error) {
+	return NewProvider(NONE, []string{}, api, web)
 }
 
 func (p *Provider) setNextMediaFeed() (err error) {
@@ -56,9 +80,9 @@ func (p *Provider) setNextMediaFeed() (err error) {
 
 	switch p.source {
 	case TAGS:
-		p.state.mediaFeed, err = p.client.MediaByFeed(p.queries[p.state.queryNum])
+		p.state.mediaFeed = p.ApiClient().MediaByTag(p.queries[p.state.queryNum])
 	case MEDIA:
-		p.state.mediaFeed, err = p.client.MediaByUser(p.queries[p.state.queryNum])
+		p.state.mediaFeed = p.ApiClient().MediaByUser(p.queries[p.state.queryNum])
 	}
 
 	if err != nil {
@@ -67,6 +91,7 @@ func (p *Provider) setNextMediaFeed() (err error) {
 
 	p.state.queryNum++
 	p.state.step = 0
+	return
 }
 
 func (p *Provider) NextUsers() ([]instax.UserShort, error) {
@@ -79,7 +104,7 @@ func (p *Provider) NextUsers() ([]instax.UserShort, error) {
 		}
 	}
 
-	users, err := p.client.Likes(p.state.media[p.state.subStep].ID)
+	users, err := p.ApiClient().Likes(p.state.media[p.state.subStep].ID)
 	if err != nil {
 		return nil, err
 	}
@@ -108,18 +133,4 @@ func (p *Provider) NextMedia() ([]instax.Media, error) {
 
 	p.state.step++
 	return media, err
-}
-
-func (p *Provider) Next() *Data {
-	return &Data{}
-}
-
-type Data struct{}
-
-func (d *Data) Media() []instax.Media {
-	return []instax.Media{}
-}
-
-func (d *Data) Users() []instax.UserShort {
-	return []instax.UserShort{}
 }

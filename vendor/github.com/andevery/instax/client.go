@@ -29,6 +29,8 @@ const (
 
 var (
 	RateLimitException = errors.New("The maximum number of requests per hour has been exceeded.")
+	NotFound           = errors.New("API not found error")
+	NotAllowed         = errors.New("API not allowed error")
 )
 
 type DelayerFunc func() time.Duration
@@ -119,7 +121,14 @@ func (c *Client) do(method, path string, values *url.Values) (*Response, error) 
 	case 429:
 		return nil, RateLimitException
 	default:
-		return nil, errors.New(r.Meta.ErrorMessage)
+		switch r.Meta.ErrorType {
+		case "APINotAllowedError":
+			return nil, NotAllowed
+		case "APINotFoundError":
+			return nil, NotFound
+		default:
+			errors.New(r.Meta.ErrorMessage)
+		}
 	}
 }
 
@@ -167,7 +176,7 @@ func (c *Client) MediaByTag(tag string) *MediaFeed {
 	}
 }
 
-func (c *Client) MediaForUser(userID string) *MediaFeed {
+func (c *Client) MediaByUser(userID string) *MediaFeed {
 	return &MediaFeed{
 		endPoint:        "users",
 		paramMaxID:      "max_id",

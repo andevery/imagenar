@@ -4,13 +4,10 @@ import (
 	"log"
 	"math/rand"
 	// "time"
-	"github.com/andevery/instaw"
 	"github.com/andevery/instax"
 )
 
 type Follower struct {
-	Limiter        *Limiter
-	WithLikes      bool
 	MinLikes       int
 	MaxLikes       int
 	Liker          *Liker
@@ -22,30 +19,55 @@ type Follower struct {
 		MinMedia      int
 	}
 
-	WebClient *instaw.Client
-	ApiClient *instax.Client
+	Provider *Provider
 }
 
-func DefaultFollower(limiter *Limiter) {
+func DefaultFollower(p *Provider, l *Liker) *Follower {
+	f := &Follower{
+		MinLikes: 2,
+		MaxLikes: 5,
+		Liker:    l,
+		Provider: p,
+	}
 
+	f.UsersCondition.MaxFollowedBy = 500
+	f.UsersCondition.MaxFollows = 300
+	f.UsersCondition.MinFollows = 100
+	f.UsersCondition.MinMedia = 50
+
+	return f
+}
+
+func (f *Follower) Start() {
+	for {
+		users, err := f.Provider.NextUsers()
+		if err == EOF {
+			return
+		} else if err == instax.NotFound {
+			continue
+		} else if err != nil {
+			log.Fatal(err)
+		}
+
+		f.FollowABatch(users)
+	}
 }
 
 func (f *Follower) FollowAFew(users []instax.UserShort, count int) {
 	for _, i := range randomIndexes(len(users), count) {
-		u, err := f.ApiClient.User(users[i].ID)
+		u, err := f.Provider.ApiClient().User(users[i].ID)
 		if err != nil {
 			log.Println(err, users[i].ID)
 			continue
 		}
 		if f.isUserMatch(u) {
-			if f.WithLikes {
-				media, err := f.ApiClient.RecentMediaByUser(users[i].ID)
+			if f.Liker != nil {
+				media, err := f.Provider.ApiClient().RecentMediaByUser(users[i].ID)
 				if err == nil {
 					f.Liker.LikeAFew(media, rand.Intn(f.MaxLikes-f.MinLikes)+f.MinLikes)
 				}
 			}
-			<-f.Limiter.Timer
-			f.WebClient.Follow(u)
+			f.Provider.WebClient().Follow(u)
 		}
 	}
 }

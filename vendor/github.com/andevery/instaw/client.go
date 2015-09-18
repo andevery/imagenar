@@ -36,17 +36,20 @@ type Client struct {
 	client *http.Client
 }
 
-func NewClient(login, password string) *Client {
+func NewClient(login, password string) (*Client, error) {
 	c := &Client{
 		UserAgent:         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36",
-		RateLimitDelayMin: 1 * time.Minute,
-		RateLimitDelayMax: 3 * time.Minute,
+		RateLimitDelayMin: 40 * time.Second,
+		RateLimitDelayMax: 80 * time.Second,
 		username:          login,
 		password:          password,
 		client:            new(http.Client),
 	}
-	c.signIn()
-	return c
+	err := c.signIn()
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 func (c *Client) do(method, path, referer string) error {

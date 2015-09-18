@@ -25,34 +25,35 @@ func main() {
 	// liker := NewLiker([]string{"деньгорода"}, client, wc)
 	// liker.Start()
 
-	apiClient := instax.NewClient("2079178474.1fb234f.682a311e35334df3842ccb654516baf5")
-	webClient := instaw.NewClient("andy_odds", "Dont_Panic1")
-	lLimiter := autogram.NewLimiter()
-	fLimiter := autogram.NewLimiter()
-	l := &autogram.Liker{Limiter: lLimiter, WebClient: webClient, ApiClient: apiClient}
-	f := &autogram.Follower{
-		Limiter:   fLimiter,
-		WebClient: webClient,
-		ApiClient: apiClient,
-		WithLikes: true,
-		Liker:     l,
-		MinLikes:  2,
-		MaxLikes:  5,
-	}
-
-	f.UsersCondition.MaxFollowedBy = 500
-	f.UsersCondition.MaxFollows = 300
-	f.UsersCondition.MinFollows = 100
-	f.UsersCondition.MinMedia = 50
-
-	us, err := apiClient.Likes("1063050685134653313")
+	api := instax.NewClient("2079178474.1fb234f.682a311e35334df3842ccb654516baf5")
+	web, err := instaw.NewClient("andy_odds", "Dont_Panic1")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	go f.FollowABatch(us)
+	fp, err := autogram.NewProvider(autogram.MEDIA, []string{"539675089", "257055308"}, api, web)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	lp, err := autogram.EmptyProvider(api, web)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	l := autogram.DefaultLiker(lp)
+	f := autogram.DefaultFollower(fp, l)
+
+	_ = f
+
+	// us, err := apiClient.Likes("1063050685134653313")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	go f.Start()
 	for {
-		log.Printf("Likes: %v\tFollows: %v\n", lLimiter.TotalAmount(), fLimiter.TotalAmount())
+		log.Printf("Likes: %v\tFollows: %v\n", l.Provider.TotalAmount(), f.Provider.TotalAmount())
 		time.Sleep(30 * time.Second)
 	}
 }

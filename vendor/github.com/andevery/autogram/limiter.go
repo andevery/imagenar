@@ -1,6 +1,8 @@
 package autogram
 
 import (
+	"github.com/andevery/instaw"
+	"github.com/andevery/instax"
 	"math/rand"
 	"sync/atomic"
 	"time"
@@ -13,58 +15,60 @@ type Limiter struct {
 	}
 	MaxDelay time.Duration
 	MinDelay time.Duration
-	Timer    chan time.Time
 
 	counters struct {
 		total uint32
 		hour  uint32
 		day   uint32
 	}
-	tickers struct {
+	webTickers struct {
 		day  *time.Ticker
 		hour *time.Ticker
 	}
-	done chan bool
+	apiTicker *time.Ticker
+
+	timer     chan time.Time
+	done      chan bool
+	apiClient *instax.Client
+	webClient *instaw.Client
 }
 
-func NewLimiter() *Limiter {
-	limiter := &Limiter{
-		MaxDelay: 25 * time.Second,
-		MinDelay: 15 * time.Second,
+func (l *Limiter) ApiClient() *instax.Client {
+	if l.apiTicker == nil {
+		l.apiTicker = time.NewTicker(1 * time.Hour)
 	}
-	limiter.Rate.HourLimit = 60
-	limiter.Timer = make(chan time.Time)
-	limiter.done = make(chan bool)
+	if l.apiClient.Limit() < 500 {
+		<-l.apiTicker.C
+	}
+	return l.apiClient
+}
 
-	limiter.tickers.day = time.NewTicker(24 * time.Hour)
-	limiter.tickers.hour = time.NewTicker(1 * time.Hour)
-
-	limiter.startTimer()
-
-	return limiter
+func (l *Limiter) WebClient() *instaw.Client {
+	<-l.timer
+	return l.webClient
 }
 
 func (l *Limiter) Stop() {
 	l.done <- true
 }
 
-func (l *Limiter) startTimer() {
+func (l *Limiter) Start() {
 	go func() {
 		for {
 			select {
-			case <-l.tickers.day.C:
+			case <-l.webTickers.day.C:
 				atomic.StoreUint32(&l.counters.day, 0)
-			case <-l.tickers.hour.C:
+			case <-l.webTickers.hour.C:
 				atomic.StoreUint32(&l.counters.hour, 0)
 			case <-l.done:
-				close(l.Timer)
-				l.tickers.day.Stop()
-				l.tickers.hour.Stop()
+				close(l.timer)
+				l.webTickers.day.Stop()
+				l.webTickers.hour.Stop()
 				return
 			default:
 				if l.notLimited() {
+					l.timer <- time.Now()
 					l.incCounters()
-					l.Timer <- time.Now()
 				}
 				delay := time.Duration(rand.Int63n(int64(l.MaxDelay) - int64(l.MinDelay) + int64(l.MinDelay)))
 				time.Sleep(delay)
@@ -76,11 +80,11 @@ func (l *Limiter) startTimer() {
 func (l *Limiter) notLimited() bool {
 	flag := true
 	if l.Rate.DayLimit > 0 {
-		flag = flag && l.counters.day <= l.Rate.DayLimit
+		flag = flag && l.counters.day < l.Rate.DayLimit
 	}
 
 	if l.Rate.HourLimit > 0 {
-		flag = flag && l.counters.hour <= l.Rate.HourLimit
+		flag = flag && l.counters.hour < l.Rate.HourLimit
 	}
 	return flag
 }
