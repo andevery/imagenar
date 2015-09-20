@@ -57,17 +57,17 @@ func (f *Follower) FollowAFew(users []instax.UserShort, count int) {
 	for _, i := range randomIndexes(len(users), count) {
 		u, err := f.Provider.ApiClient().User(users[i].ID)
 		if err != nil {
-			log.Println(err, users[i].ID)
+			// log.Println(err, users[i].ID)
 			continue
 		}
 		if f.isUserMatch(u) {
+			f.Provider.WebClient().Follow(u)
 			if f.Liker != nil {
 				media, err := f.Provider.ApiClient().RecentMediaByUser(users[i].ID)
 				if err == nil {
 					f.Liker.LikeAFew(media, rand.Intn(f.MaxLikes-f.MinLikes)+f.MinLikes)
 				}
 			}
-			f.Provider.WebClient().Follow(u)
 		}
 	}
 }

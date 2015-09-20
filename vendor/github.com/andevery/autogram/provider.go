@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/andevery/instaw"
 	"github.com/andevery/instax"
-	"time"
 )
 
 type Source int
@@ -23,7 +22,7 @@ var (
 )
 
 type Provider struct {
-	Limiter
+	Limiter *Limiter
 
 	source  Source
 	queries []string
@@ -37,13 +36,12 @@ type Provider struct {
 	}
 }
 
-func NewProvider(src Source, q []string, api *instax.Client, web *instaw.Client) (*Provider, error) {
+func NewProvider(src Source, q []string, l *Limiter) (*Provider, error) {
 	p := &Provider{
 		source:  src,
 		queries: q,
+		Limiter: l,
 	}
-	p.apiClient = api
-	p.webClient = web
 
 	switch src {
 	case TAGS, MEDIA:
@@ -55,21 +53,23 @@ func NewProvider(src Source, q []string, api *instax.Client, web *instaw.Client)
 		return nil, UknownSource
 	}
 
-	p.MaxDelay = 25 * time.Second
-	p.MinDelay = 15 * time.Second
-	p.Rate.HourLimit = 60
-	p.timer = make(chan time.Time)
-	p.done = make(chan bool)
-	p.webTickers.day = time.NewTicker(24 * time.Hour)
-	p.webTickers.hour = time.NewTicker(1 * time.Hour)
-
-	p.Start()
-
 	return p, nil
 }
 
-func EmptyProvider(api *instax.Client, web *instaw.Client) (*Provider, error) {
-	return NewProvider(NONE, []string{}, api, web)
+func EmptyProvider(l *Limiter) (*Provider, error) {
+	return NewProvider(NONE, []string{}, l)
+}
+
+func (p *Provider) ApiClient() *instax.Client {
+	return p.Limiter.ApiClient()
+}
+
+func (p *Provider) WebClient() *instaw.Client {
+	return p.Limiter.WebClient()
+}
+
+func (p *Provider) TotalAmount() uint32 {
+	return p.Limiter.TotalAmount()
 }
 
 func (p *Provider) setNextMediaFeed() (err error) {

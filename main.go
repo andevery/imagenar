@@ -31,29 +31,29 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fp, err := autogram.NewProvider(autogram.MEDIA, []string{"539675089", "257055308"}, api, web)
+	l := autogram.DefaultLimiter(api, web)
+
+	fp, err := autogram.NewProvider(autogram.MEDIA, []string{"1667036449"}, l)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	lp, err := autogram.EmptyProvider(api, web)
+	lp, err := autogram.EmptyProvider(l)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	l := autogram.DefaultLiker(lp)
-	f := autogram.DefaultFollower(fp, l)
-
-	_ = f
+	liker := autogram.DefaultLiker(lp)
+	follower := autogram.DefaultFollower(fp, liker)
 
 	// us, err := apiClient.Likes("1063050685134653313")
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }
 
-	go f.Start()
+	go follower.Start()
 	for {
-		log.Printf("Likes: %v\tFollows: %v\n", l.Provider.TotalAmount(), f.Provider.TotalAmount())
+		log.Printf("Likes: %v\tFollows: %v\n", liker.Provider.TotalAmount(), follower.Provider.TotalAmount())
 		time.Sleep(30 * time.Second)
 	}
 }

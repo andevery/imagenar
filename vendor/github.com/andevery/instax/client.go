@@ -127,7 +127,7 @@ func (c *Client) do(method, path string, values *url.Values) (*Response, error) 
 		case "APINotFoundError":
 			return nil, NotFound
 		default:
-			errors.New(r.Meta.ErrorMessage)
+			return nil, errors.New(r.Meta.ErrorMessage)
 		}
 	}
 }

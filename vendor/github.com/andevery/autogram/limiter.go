@@ -33,6 +33,24 @@ type Limiter struct {
 	webClient *instaw.Client
 }
 
+func DefaultLimiter(api *instax.Client, web *instaw.Client) *Limiter {
+	l := &Limiter{
+		apiClient: api,
+		webClient: web,
+	}
+	l.MaxDelay = 25 * time.Second
+	l.MinDelay = 15 * time.Second
+	l.Rate.HourLimit = 180
+	l.timer = make(chan time.Time)
+	l.done = make(chan bool)
+	l.webTickers.day = time.NewTicker(24 * time.Hour)
+	l.webTickers.hour = time.NewTicker(1 * time.Hour)
+
+	l.Start()
+
+	return l
+}
+
 func (l *Limiter) ApiClient() *instax.Client {
 	if l.apiTicker == nil {
 		l.apiTicker = time.NewTicker(1 * time.Hour)

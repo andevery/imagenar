@@ -84,13 +84,12 @@ func (c *Client) do(method, path, referer string) error {
 	if err != nil {
 		return err
 	}
+	log.Println(resp.StatusCode)
+	log.Println(string(body))
 
 	var status Response
 	err = json.Unmarshal(body, &status)
 	if err != nil {
-		fmt.Println("")
-		log.Println(resp.StatusCode)
-		log.Println(string(body))
 		time.Sleep(time.Duration(rand.Int63n(int64(c.RateLimitDelayMax)-int64(c.RateLimitDelayMin)) + int64(c.RateLimitDelayMin)))
 	}
 
