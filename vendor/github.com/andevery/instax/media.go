@@ -62,13 +62,6 @@ type Comment struct {
 	From        UserShort `json:"from"`
 }
 
-type UserShort struct {
-	ID             string `json:"id"`
-	FullName       string `json:"full_name"`
-	Username       string `json:"username"`
-	ProfilePicture string `json:"profile_picture"`
-}
-
 type MediaItem struct {
 	Height int    `json:"height"`
 	URL    string `json:"url"`
@@ -80,6 +73,40 @@ type Location struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 	Name      string  `json:"name"`
+}
+
+func (c *Client) Media(id string) (*Media, error) {
+	path := fmt.Sprintf("/media/%s", id)
+
+	resp, err := c.do("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var m Media
+	err = json.Unmarshal(resp.Data, &m)
+	if err != nil {
+		return nil, err
+	}
+
+	return &m, nil
+}
+
+func (c *Client) RecentMediaByUser(userID string) ([]Media, error) {
+	path := fmt.Sprintf("/users/%s/media/recent", userID)
+
+	resp, err := c.do("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var m []Media
+	err = json.Unmarshal(resp.Data, &m)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
 type MediaFeed struct {
@@ -127,4 +154,24 @@ func (f *MediaFeed) Next() ([]Media, error) {
 	values.Add(f.paramMaxID, f.nextMaxID)
 
 	return f.do(values)
+}
+
+func (c *Client) MediaByTag(tag string) *MediaFeed {
+	return &MediaFeed{
+		endPoint:        "tags",
+		paramMaxID:      "max_tag_id",
+		paginationMaxID: "next_max_tag_id",
+		query:           tag,
+		client:          c,
+	}
+}
+
+func (c *Client) MediaByUser(userID string) *MediaFeed {
+	return &MediaFeed{
+		endPoint:        "users",
+		paramMaxID:      "max_id",
+		paginationMaxID: "next_max_id",
+		query:           userID,
+		client:          c,
+	}
 }
