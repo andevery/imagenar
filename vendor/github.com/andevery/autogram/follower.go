@@ -55,12 +55,7 @@ func (f *Follower) Start() {
 
 func (f *Follower) FollowAFew(users []instax.UserShort, count int) {
 	for _, i := range randomIndexes(len(users), count) {
-		u, err := f.Provider.ApiClient().User(users[i].ID)
-		if err != nil {
-			// log.Println(err, users[i].ID)
-			continue
-		}
-		if f.isUserMatch(u) {
+		if u, ok := f.isUserMatch(users[i].ID); ok {
 			f.Provider.WebClient().Follow(u)
 			if f.Liker != nil {
 				media, err := f.Provider.ApiClient().RecentMediaByUser(users[i].ID)
@@ -76,7 +71,17 @@ func (f *Follower) FollowABatch(users []instax.UserShort) {
 	f.FollowAFew(users, len(users))
 }
 
-func (f *Follower) isUserMatch(user *instax.User) bool {
+func (f *Follower) isUserMatch(userID string) (*instax.User, bool) {
+	r, err := f.Provider.ApiClient().Relationship(userID)
+	if err != nil || r.TargetUserIsPrivate || r.OutgoingStatus != instax.NONE {
+		return nil, false
+	}
+
+	user, err := f.Provider.ApiClient().User(userID)
+	if err != nil {
+		return nil, false
+	}
+
 	flag := true
 
 	if f.UsersCondition.MaxFollowedBy > 0 {
@@ -95,5 +100,5 @@ func (f *Follower) isUserMatch(user *instax.User) bool {
 		flag = flag && user.Counts.Media >= f.UsersCondition.MinMedia
 	}
 
-	return flag
+	return user, flag
 }
