@@ -2,8 +2,13 @@ package instax
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
+)
+
+var (
+	EOF = errors.New("End of feed")
 )
 
 type Media struct {
@@ -114,16 +119,12 @@ type MediaFeed struct {
 	endPoint        string
 	query           string
 	paramMaxID      string
+	paramMinID      string
 	paginationMaxID string
+	paginationMinID string
 	nextMaxID       string
-}
-
-func (f *MediaFeed) CanNext() bool {
-	if len(f.nextMaxID) > 0 {
-		return true
-	}
-
-	return false
+	nextMinID       string
+	minID           string
 }
 
 func (f *MediaFeed) do(values *url.Values) ([]Media, error) {
@@ -141,17 +142,34 @@ func (f *MediaFeed) do(values *url.Values) ([]Media, error) {
 	}
 
 	f.nextMaxID = resp.Pagination[f.paginationMaxID]
+	f.nextMinID = resp.Pagination[f.paginationMinID]
+	if resp.Pagination[f.paginationMinID] != "" {
+		f.minID = resp.Pagination[f.paginationMinID]
+	}
 
 	return m, nil
 }
 
-func (f *MediaFeed) Get() ([]Media, error) {
-	return f.do(nil)
-}
-
 func (f *MediaFeed) Next() ([]Media, error) {
+	if len(f.nextMaxID) == 0 && len(f.minID) == 0 {
+		return f.do(nil)
+	} else if len(f.nextMaxID) == 0 {
+		return nil, EOF
+	}
+
 	values := &url.Values{}
 	values.Add(f.paramMaxID, f.nextMaxID)
+
+	return f.do(values)
+}
+
+func (f *MediaFeed) Prev() ([]Media, error) {
+	if len(f.minID) == 0 {
+		f.do(nil)
+	}
+
+	values := &url.Values{}
+	values.Add(f.paramMinID, f.minID)
 
 	return f.do(values)
 }
@@ -160,7 +178,9 @@ func (c *Client) MediaByTag(tag string) *MediaFeed {
 	return &MediaFeed{
 		endPoint:        "tags",
 		paramMaxID:      "max_tag_id",
+		paramMinID:      "min_tag_id",
 		paginationMaxID: "next_max_tag_id",
+		paginationMinID: "min_tag_id",
 		query:           tag,
 		client:          c,
 	}
@@ -170,7 +190,9 @@ func (c *Client) MediaByUser(userID string) *MediaFeed {
 	return &MediaFeed{
 		endPoint:        "users",
 		paramMaxID:      "max_id",
+		paramMinID:      "min_id",
 		paginationMaxID: "next_max_id",
+		paginationMinID: "next_min_id",
 		query:           userID,
 		client:          c,
 	}
