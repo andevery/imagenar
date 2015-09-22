@@ -24,8 +24,8 @@ type Follower struct {
 
 func DefaultFollower(p *Provider, l *Liker) *Follower {
 	f := &Follower{
-		MinLikes: 2,
-		MaxLikes: 5,
+		MinLikes: 7,
+		MaxLikes: 11,
 		Liker:    l,
 		Provider: p,
 	}
@@ -55,8 +55,8 @@ func (f *Follower) Start() {
 
 func (f *Follower) FollowAFew(users []instax.UserShort, count int) {
 	for _, i := range randomIndexes(len(users), count) {
-		if u, ok := f.isUserMatch(users[i].ID); ok {
-			f.Provider.WebClient().Follow(u)
+		if _, ok := f.isUserMatch(users[i].ID); ok {
+			// f.Provider.WebClient().Follow(u)
 			if f.Liker != nil {
 				media, err := f.Provider.ApiClient().RecentMediaByUser(users[i].ID)
 				if err == nil {
