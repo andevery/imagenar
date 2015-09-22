@@ -33,7 +33,7 @@ func main() {
 
 	l := autogram.DefaultLimiter(api, web)
 
-	fp, err := autogram.NewProvider(autogram.MEDIA, []string{"370080"}, l)
+	fp, err := autogram.NewProvider(autogram.MEDIA, []string{"1327608071"}, l)
 	if err != nil {
 		log.Fatal(err)
 	}

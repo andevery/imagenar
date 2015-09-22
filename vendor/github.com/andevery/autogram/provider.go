@@ -117,13 +117,11 @@ func (p *Provider) NextMedia() ([]instax.Media, error) {
 	var media []instax.Media
 	var err error
 
-	if p.state.step == 0 {
-		media, err = p.state.mediaFeed.Get()
-	} else if p.state.mediaFeed.CanNext() {
-		media, err = p.state.mediaFeed.Next()
-	} else {
-		if err = p.setNextMediaFeed(); err == nil {
-			media, err = p.state.mediaFeed.Get()
+	media, err = p.state.mediaFeed.Next()
+	if err == instax.EOF {
+		err = p.setNextMediaFeed()
+		if err == nil {
+			media, err = p.state.mediaFeed.Next()
 		}
 	}
 

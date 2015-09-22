@@ -3,6 +3,7 @@ package autogram
 import (
 	"github.com/andevery/instaw"
 	"github.com/andevery/instax"
+	"log"
 	"math/rand"
 	"sync/atomic"
 	"time"
@@ -88,7 +89,8 @@ func (l *Limiter) Start() {
 					l.timer <- time.Now()
 					l.incCounters()
 				}
-				delay := time.Duration(rand.Int63n(int64(l.MaxDelay) - int64(l.MinDelay) + int64(l.MinDelay)))
+				delay := time.Duration(rand.Int63n(int64(l.MaxDelay)-int64(l.MinDelay)) + int64(l.MinDelay))
+				log.Printf("Delay: %v\n", delay)
 				time.Sleep(delay)
 			}
 		}

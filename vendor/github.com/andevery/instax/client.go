@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"sort"
@@ -91,6 +92,7 @@ func (c *Client) do(method, path string, values *url.Values) (*Response, error) 
 
 	values.Add("access_token", c.accessToken)
 	u.RawQuery = values.Encode()
+	log.Println(u.String())
 
 	req, err := http.NewRequest(method, u.String(), nil)
 	if err != nil {
