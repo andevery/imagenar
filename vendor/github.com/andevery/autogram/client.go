@@ -11,7 +11,7 @@ type Client struct {
 }
 
 func NewClient(user, pass, token string) *Client {
-
+	return &Client{}
 }
 
 func (c *Client) Api() *instax.Client {

@@ -24,8 +24,8 @@ type Follower struct {
 
 func DefaultFollower(p *Provider, l *Liker) *Follower {
 	f := &Follower{
-		MinLikes: 7,
-		MaxLikes: 11,
+		MinLikes: 3,
+		MaxLikes: 7,
 		Liker:    l,
 		Provider: p,
 	}
