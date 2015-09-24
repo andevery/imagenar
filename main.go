@@ -2,8 +2,6 @@ package main
 
 import (
 	"github.com/andevery/autogram"
-	"github.com/andevery/instaw"
-	"github.com/andevery/instax"
 	"log"
 	"time"
 )
@@ -25,35 +23,47 @@ func main() {
 	// liker := NewLiker([]string{"деньгорода"}, client, wc)
 	// liker.Start()
 
-	api := instax.NewClient("2079178474.1fb234f.682a311e35334df3842ccb654516baf5")
-	web, err := instaw.NewClient("andy_odds", "Dont_Panic1")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// api := instax.NewClient("2079178474.1fb234f.682a311e35334df3842ccb654516baf5")
+	// web, err := instaw.NewClient("andy_odds", "Dont_Panic1")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	l := autogram.DefaultLimiter(api, web)
+	// l := autogram.DefaultLimiter(api, web)
 
-	fp, err := autogram.NewProvider(autogram.MEDIA, []string{"283175195"}, l)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// fp, err := autogram.NewProvider(autogram.MEDIA, []string{"188535934"}, l)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	lp, err := autogram.EmptyProvider(l)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// lp, err := autogram.EmptyProvider(l)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	liker := autogram.DefaultLiker(lp)
-	follower := autogram.DefaultFollower(fp, liker)
+	// liker := autogram.DefaultLiker(lp)
+	// follower := autogram.DefaultFollower(fp, liker)
 
 	// us, err := apiClient.Likes("1063050685134653313")
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }
 
-	go follower.Start()
+	// go follower.Start()
+	// for {
+	// 	log.Printf("Likes: %v\tFollows: %v\n", liker.Provider.TotalAmount(), follower.Provider.TotalAmount())
+	// 	time.Sleep(30 * time.Second)
+	// }
+
+	c, err := autogram.DefaultClient("andy_odds", "Dont_Panic1", "2079178474.1fb234f.682a311e35334df3842ccb654516baf5")
+	if err != nil {
+		log.Fatal(err)
+	}
+	w := autogram.DefaultTagsWorker(c, []string{"cityscape", "animallovers", "architecture"})
+	w.Start()
+	t := time.Now()
 	for {
-		log.Printf("Likes: %v\tFollows: %v\n", liker.Provider.TotalAmount(), follower.Provider.TotalAmount())
+		log.Printf("Left: %v, Likes: %v\tFollows: %v\n", time.Since(t), w.LikesCount(), w.FollowsCount())
 		time.Sleep(30 * time.Second)
 	}
 }

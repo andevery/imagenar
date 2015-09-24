@@ -165,7 +165,7 @@ func (f *MediaFeed) Next() ([]Media, error) {
 
 func (f *MediaFeed) Prev() ([]Media, error) {
 	if len(f.minID) == 0 {
-		f.do(nil)
+		return f.do(nil)
 	}
 
 	values := &url.Values{}
