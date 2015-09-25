@@ -3,6 +3,7 @@ package instax
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 )
 
 type UserShort struct {
@@ -41,4 +42,45 @@ func (c *Client) User(userID string) (*User, error) {
 	}
 
 	return &user, nil
+}
+
+type UsersFeed struct {
+	client     *Client
+	init       bool
+	query      string
+	endPoint   string
+	nextCursor string
+}
+
+func (f *UsersFeed) do(values *url.Values) ([]UserShort, error) {
+	path := fmt.Sprintf("/users/%s/%s", f.query, f.endPoint)
+
+	resp, err := f.client.do("GET", path, values)
+	if err != nil {
+		return nil, err
+	}
+
+	var u []UserShort
+	err = json.Unmarshal(resp.Data, &u)
+	if err != nil {
+		return nil, err
+	}
+
+	f.nextCursor = resp.Pagination["next_cursor"]
+
+	return u, nil
+}
+
+func (f *UsersFeed) Next() ([]UserShort, error) {
+	if f.init {
+		f.init = false
+		return f.do(nil)
+	} else if len(f.nextCursor) == 0 {
+		return nil, EOF
+	}
+
+	values := &url.Values{}
+	values.Add("cursor", f.nextCursor)
+
+	return f.do(values)
 }

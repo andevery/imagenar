@@ -42,10 +42,10 @@ func NewTagsWorker(client *Client, tags []string) *TagsWorker {
 
 func DefaultTagsWorker(client *Client, tags []string) *TagsWorker {
 	w := NewTagsWorker(client, tags)
-	w.Follow = false
+	w.Follow = true
 	w.Like = true
-	w.LikesPerUser.Min = 3
-	w.LikesPerUser.Max = 7
+	w.LikesPerUser.Min = 2
+	w.LikesPerUser.Max = 4
 	// w.MediaCondition.MaxTags = 15
 	w.UserCondition.MaxFollowedBy = 500
 	w.UserCondition.MaxFollows = 300
@@ -92,7 +92,7 @@ func (w *TagsWorker) perform(feed *instax.MediaFeed) {
 			}
 			if w.Follow {
 				err := w.client.Web().Follow(user)
-				if err != nil {
+				if err == nil {
 					atomic.AddUint32(&w.counts.follows, 1)
 				}
 			}

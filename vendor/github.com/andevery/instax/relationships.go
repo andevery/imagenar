@@ -36,3 +36,30 @@ func (c *Client) Relationship(userID string) (*Relationship, error) {
 
 	return &r, nil
 }
+
+func (c *Client) Follows(userID string) *UsersFeed {
+	return &UsersFeed{
+		client:   c,
+		init:     true,
+		query:    userID,
+		endPoint: "follows",
+	}
+}
+
+func (c *Client) FollowedBy(userID string) *UsersFeed {
+	return &UsersFeed{
+		client:   c,
+		init:     true,
+		query:    userID,
+		endPoint: "followed-by",
+	}
+}
+
+func (c *Client) RequestedBy(userID string) *UsersFeed {
+	return &UsersFeed{
+		client:   c,
+		init:     true,
+		query:    userID,
+		endPoint: "requested-by",
+	}
+}
