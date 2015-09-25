@@ -76,10 +76,10 @@ func (w *TagsWorker) perform(feed *instax.MediaFeed) {
 				continue
 			}
 			user, ok := w.userMatch(media[i].User.ID)
-			log.Printf("User %v got %v \n", user.ID, ok)
 			if !ok {
 				continue
 			}
+			log.Printf("User %v got %v \n", user.ID, ok)
 
 			if w.Like {
 				recent, err := w.client.Api().RecentMediaByUser(media[i].User.ID)
