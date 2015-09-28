@@ -42,10 +42,10 @@ func NewTagsWorker(client *Client, tags []string) *TagsWorker {
 
 func DefaultTagsWorker(client *Client, tags []string) *TagsWorker {
 	w := NewTagsWorker(client, tags)
-	w.Follow = true
+	w.Follow = false
 	w.Like = true
-	w.LikesPerUser.Min = 2
-	w.LikesPerUser.Max = 4
+	w.LikesPerUser.Min = 3
+	w.LikesPerUser.Max = 7
 	// w.MediaCondition.MaxTags = 15
 	w.UserCondition.MaxFollowedBy = 500
 	w.UserCondition.MaxFollows = 300
