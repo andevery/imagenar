@@ -47,8 +47,8 @@ func DefaultClient(user, pass, token string) (*Client, error) {
 
 	c.WebRate.HourLimit = 180
 	c.WebRate.DayLimit = 0
-	c.WebRate.MaxDelay = 25 * time.Second
-	c.WebRate.MinDelay = 15 * time.Second
+	c.WebRate.MaxDelay = 35 * time.Second
+	c.WebRate.MinDelay = 25 * time.Second
 	c.ApiRate.MinRemaining = 500
 	c.tickers.webDay = time.NewTicker(24 * time.Hour)
 	c.tickers.webHour = time.NewTicker(time.Hour)
@@ -73,6 +73,72 @@ func (c *Client) Api() *instax.Client {
 func (c *Client) Web() *instaw.Client {
 	<-c.webAllow
 	return c.web
+}
+
+func (c *Client) Like(media *instax.Media) error {
+	for {
+		err := c.Web().Like(media)
+		switch err {
+		case instaw.TooManyRequests:
+			log.Printf("%s Retrying...\n", err)
+			continue
+		case instaw.BadRequest:
+			log.Fatal(err)
+		}
+
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		break
+	}
+
+	return nil
+}
+
+func (c *Client) Follow(user *instax.User) error {
+	for {
+		err := c.Web().Follow(user)
+		switch err {
+		case instaw.TooManyRequests:
+			log.Printf("%s Retrying...\n", err)
+			continue
+		case instaw.BadRequest:
+			log.Fatal(err)
+		}
+
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		break
+	}
+
+	return nil
+}
+
+func (c *Client) Unfollow(user *instax.User) error {
+	for {
+		err := c.Web().Unfollow(user)
+		switch err {
+		case instaw.TooManyRequests:
+			log.Printf("%s Retrying...\n", err)
+			continue
+		case instaw.BadRequest:
+			log.Fatal(err)
+		}
+
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+
+		break
+	}
+
+	return nil
 }
 
 func (c *Client) start() {
@@ -122,6 +188,6 @@ func (c *Client) allowed() bool {
 
 func (c *Client) LikeAFew(media []instax.Media, count int) {
 	for _, i := range randomIndexes(len(media), count) {
-		c.Web().Like(&media[i])
+		c.Like(&media[i])
 	}
 }

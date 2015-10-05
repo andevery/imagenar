@@ -84,14 +84,14 @@ func (w *TagsWorker) perform(feed *instax.MediaFeed) {
 			if w.Like {
 				recent, err := w.client.Api().RecentMediaByUser(media[i].User.ID)
 				if err == nil {
-					w.client.Web().Like(&recent[0])
+					w.client.Like(&recent[0])
 					count := rand.Intn(w.LikesPerUser.Max-w.LikesPerUser.Min) + w.LikesPerUser.Min - 1
 					w.client.LikeAFew(recent[1:], count)
 					atomic.AddUint32(&w.counts.likes, uint32(count+1))
 				}
 			}
 			if w.Follow {
-				err := w.client.Web().Follow(user)
+				err := w.client.Follow(user)
 				if err == nil {
 					atomic.AddUint32(&w.counts.follows, 1)
 				}

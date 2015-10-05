@@ -38,7 +38,7 @@ func (w *UnfollowWorker) Start() {
 				log.Println(err)
 				continue
 			}
-			err = w.client.Web().Unfollow(user)
+			err = w.client.Unfollow(user)
 			if err == nil {
 				log.Printf("Unfollowed user %s", user.ID)
 				w.count++

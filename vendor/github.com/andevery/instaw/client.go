@@ -3,11 +3,11 @@ package instaw
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/andevery/instax"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -18,6 +18,11 @@ const (
 	Scheme    = "https"
 	Host      = "instagram.com"
 	Namespace = "web"
+)
+
+var (
+	TooManyRequests = errors.New("Sorry, too many requests. Please try again later.")
+	BadRequest      = errors.New("Bad request")
 )
 
 type DelayerFunc func() time.Duration
@@ -84,13 +89,18 @@ func (c *Client) do(method, path, referer string) error {
 	if err != nil {
 		return err
 	}
-	log.Println(resp.StatusCode)
-	log.Println(string(body))
+
+	switch resp.StatusCode {
+	case 403:
+		return TooManyRequests
+	case 400:
+		return BadRequest
+	}
 
 	var status Response
 	err = json.Unmarshal(body, &status)
 	if err != nil {
-		time.Sleep(time.Duration(rand.Int63n(int64(c.RateLimitDelayMax)-int64(c.RateLimitDelayMin)) + int64(c.RateLimitDelayMin)))
+		return err
 	}
 
 	return nil
