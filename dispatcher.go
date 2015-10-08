@@ -66,6 +66,7 @@ type Dispatcher struct {
 	waitGroup *sync.WaitGroup
 	done      chan bool
 	tasks     map[int64]string
+	clients   *ClientsPool
 }
 
 func NewDispatcher(conf DBConf) (d *Dispatcher, err error) {
@@ -79,6 +80,7 @@ func NewDispatcher(conf DBConf) (d *Dispatcher, err error) {
 		done:      make(chan bool),
 		waitGroup: &sync.WaitGroup{},
 		listener:  pq.NewListener(c.Conn, 10*time.Second, time.Minute, nil),
+		clients:   NewClientsPool(),
 	}
 
 	d.db, err = sql.Open(c.Driver, c.Conn)
@@ -141,7 +143,7 @@ func (d *Dispatcher) processTask(notify *Notify) {
 }
 
 func (d *Dispatcher) startTask(notify *Notify) {
-	// client := d.getClient(notify.Data.ProfilesID)
+	client := d.getClient(notify.Data.ProfilesID)
 	switch notify.Data.Type {
 	case UNFOLLOW:
 		log.Println("Started unfollow task")
@@ -167,4 +169,8 @@ func (d *Dispatcher) stopTask(notify *Notify) {
 	if err != nil {
 		log.Printf("DB Exec on stop: %s\n", err)
 	}
+}
+
+func (d *Dispatcher) getClient(id int64) *autogram.Client {
+
 }
