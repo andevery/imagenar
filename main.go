@@ -5,6 +5,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+	"time"
 )
 
 var (
@@ -24,14 +25,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var conf dbConf
+	var conf DBConf
 	err = yaml.Unmarshal(data, &conf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = dbConnect(conf)
+	dispatcher, err := NewDispatcher(conf)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	dispatcher.Start()
+	time.Sleep(time.Minute)
+	dispatcher.Stop()
 }

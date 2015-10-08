@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS tasks
   minfollows integer DEFAULT 100,
   minmedia integer DEFAULT 20,
   delay integer DEFAULT 60,
-  tags character varying(255),
+  tags character varying(255) DEFAULT '',
   likescount integer DEFAULT 0,
   followscount integer DEFAULT 0,
   unfollowscount integer DEFAULT 0,
