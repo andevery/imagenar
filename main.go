@@ -5,7 +5,9 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 var (
@@ -37,6 +39,10 @@ func main() {
 	}
 
 	dispatcher.Start()
-	time.Sleep(time.Minute)
+	ch := make(chan os.Signal)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	log.Println(<-ch)
+
+	// Stop the service gracefully.
 	dispatcher.Stop()
 }

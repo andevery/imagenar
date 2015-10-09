@@ -4,11 +4,13 @@ import (
 	"github.com/andevery/instax"
 	"log"
 	"math/rand"
+	"sync"
 	"sync/atomic"
 	"time"
 )
 
 type TagsWorker struct {
+	ID           int64
 	Follow       bool
 	Like         bool
 	LikesPerUser struct {
@@ -33,16 +35,26 @@ type TagsWorker struct {
 		follows uint32
 	}
 
-	client *Client
+	client    *Client
+	send      Reporter
+	done      chan bool
+	waitGroup *sync.WaitGroup
 }
 
-func NewTagsWorker(client *Client, tags []string) *TagsWorker {
-	return &TagsWorker{client: client, tags: tags}
+func NewTagsWorker(id int64, client *Client, tags []string, reporter Reporter) *TagsWorker {
+	return &TagsWorker{
+		ID:        id,
+		client:    client,
+		tags:      tags,
+		done:      make(chan bool),
+		send:      reporter,
+		waitGroup: &sync.WaitGroup{},
+	}
 }
 
-func DefaultTagsWorker(client *Client, tags []string) *TagsWorker {
-	w := NewTagsWorker(client, tags)
-	w.Follow = true
+func DefaultTagsWorker(id int64, client *Client, tags []string, reporter Reporter) *TagsWorker {
+	w := NewTagsWorker(id, client, tags, reporter)
+	w.Follow = false
 	w.Like = true
 	w.LikesPerUser.Min = 2
 	w.LikesPerUser.Max = 4
@@ -61,17 +73,33 @@ func (w *TagsWorker) Start() {
 		feed := w.client.Api().MediaByTag(t)
 		log.Printf("Feed get\n")
 		go w.perform(feed)
+		w.waitGroup.Add(1)
 	}
 }
 
+func (w *TagsWorker) Stop() {
+	close(w.done)
+	w.waitGroup.Wait()
+	w.report()
+	log.Println("Tags task stopped")
+}
+
 func (w *TagsWorker) perform(feed *instax.MediaFeed) {
+	defer w.waitGroup.Done()
 	for {
+		if w.stopped() {
+			return
+		}
 		media, err := feed.Prev()
 		log.Printf("Got %v media\n", len(media))
 		if err != nil {
-			log.Fatal(err)
+			w.fatal(err)
+			return
 		}
 		for i, _ := range media {
+			if w.stopped() {
+				return
+			}
 			if !w.mediaMatch(&media[i]) {
 				continue
 			}
@@ -84,18 +112,21 @@ func (w *TagsWorker) perform(feed *instax.MediaFeed) {
 			if w.Like {
 				recent, err := w.client.Api().RecentMediaByUser(media[i].User.ID)
 				if err == nil {
-					w.client.Like(&recent[0])
+					w.client.Web().Like(&recent[0])
 					count := rand.Intn(w.LikesPerUser.Max-w.LikesPerUser.Min) + w.LikesPerUser.Min - 1
 					w.client.LikeAFew(recent[1:], count)
 					atomic.AddUint32(&w.counts.likes, uint32(count+1))
 				}
 			}
 			if w.Follow {
-				err := w.client.Follow(user)
-				if err == nil {
-					atomic.AddUint32(&w.counts.follows, 1)
+				err := w.client.Web().Follow(user)
+				if err != nil {
+					w.fatal(err)
+					return
 				}
+				atomic.AddUint32(&w.counts.follows, 1)
 			}
+			w.report()
 		}
 		time.Sleep(w.Delay)
 	}
@@ -147,4 +178,35 @@ func (w *TagsWorker) LikesCount() int {
 
 func (w *TagsWorker) FollowsCount() int {
 	return int(atomic.LoadUint32(&w.counts.follows))
+}
+
+func (w *TagsWorker) stopped() bool {
+	select {
+	case <-w.done:
+		return true
+	default:
+	}
+	return false
+}
+
+func (w *TagsWorker) report() {
+	if w.send != nil {
+		report := map[string]int{
+			"followed": w.FollowsCount(),
+			"liked":    w.LikesCount(),
+		}
+		w.send.Report(w.ID, report)
+	}
+}
+
+func (w *TagsWorker) error(err error) {
+	if w.send != nil {
+		w.send.Error(w.ID, err)
+	}
+}
+
+func (w *TagsWorker) fatal(err error) {
+	if w.send != nil {
+		w.send.Fatal(w.ID, err)
+	}
 }

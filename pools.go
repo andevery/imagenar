@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/andevery/autogram"
+	"log"
 	"sync"
 )
 
@@ -17,16 +18,16 @@ type ClientsPool struct {
 
 func NewClientsPool() *ClientsPool {
 	return &ClientsPool{
-		clients: make(map[int64]*client),
-		mutex:   &sync.Mutex,
+		clients: make(map[int64]*Client),
+		mutex:   &sync.Mutex{},
 	}
 }
 
-func (p *ClientsPool) Get(id int64) (*autogram.Client, ok) {
+func (p *ClientsPool) Get(id int64) (*autogram.Client, bool) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	c, ok := p.clients[i]
+	c, ok := p.clients[id]
 	if !ok {
 		return nil, false
 	}
@@ -55,5 +56,6 @@ func (p *ClientsPool) DecTasks(id int64) {
 	p.clients[id].tasksCount--
 	if p.clients[id].tasksCount == 0 {
 		delete(p.clients, id)
+		log.Println("Client removed from pool")
 	}
 }

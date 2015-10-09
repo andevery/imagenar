@@ -75,72 +75,6 @@ func (c *Client) Web() *instaw.Client {
 	return c.web
 }
 
-func (c *Client) Like(media *instax.Media) error {
-	for {
-		err := c.Web().Like(media)
-		switch err {
-		case instaw.TooManyRequests:
-			log.Printf("%s Retrying...\n", err)
-			continue
-		case instaw.BadRequest:
-			log.Fatal(err)
-		}
-
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-
-		break
-	}
-
-	return nil
-}
-
-func (c *Client) Follow(user *instax.User) error {
-	for {
-		err := c.Web().Follow(user)
-		switch err {
-		case instaw.TooManyRequests:
-			log.Printf("%s Retrying...\n", err)
-			continue
-		case instaw.BadRequest:
-			log.Fatal(err)
-		}
-
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-
-		break
-	}
-
-	return nil
-}
-
-func (c *Client) Unfollow(user *instax.User) error {
-	for {
-		err := c.Web().Unfollow(user)
-		switch err {
-		case instaw.TooManyRequests:
-			log.Printf("%s Retrying...\n", err)
-			continue
-		case instaw.BadRequest:
-			log.Fatal(err)
-		}
-
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-
-		break
-	}
-
-	return nil
-}
-
 func (c *Client) start() {
 	go func() {
 		for {
@@ -188,6 +122,6 @@ func (c *Client) allowed() bool {
 
 func (c *Client) LikeAFew(media []instax.Media, count int) {
 	for _, i := range randomIndexes(len(media), count) {
-		c.Like(&media[i])
+		c.Web().Like(&media[i])
 	}
 }
