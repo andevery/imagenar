@@ -21,7 +21,7 @@ run_locally do
     execute :rm, '-rf', LOCAL_TARGET
   end
   execute :mkdir, "#{LOCAL_TARGET}"
-  with 'GO15VENDOREXPERIMENT' => 1 do
+  with 'GO15VENDOREXPERIMENT' => 1, goos: :linux, goarch: :amd64  do
     execute :go, :build, '-o', "#{LOCAL_TARGET}/#{APP_NAME}", "*.go"
   end
 end
@@ -39,8 +39,7 @@ on host do
     execute :ln, '-nfs', DEST_TARGET, :current
   end
   within "#{APP_DIR}/current" do
-    # execute :goose, '-env', :production, :up
-    # puts capture(:nohup, "#{APP_DIR}/current/#{APP_NAME}", "-e=production", "&")
+    execute :goose, '-env', :production, :up
     Timeout::timeout(1) {
       execute :nohup, "#{APP_DIR}/current/#{APP_NAME} -e=production < /dev/null > imagenar-g.log"
     } rescue nil
