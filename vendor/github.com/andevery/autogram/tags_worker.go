@@ -78,10 +78,15 @@ func (w *TagsWorker) Start() {
 }
 
 func (w *TagsWorker) Stop() {
-	close(w.done)
-	w.waitGroup.Wait()
-	w.report()
-	log.Println("Tags task stopped")
+	select {
+	case <-w.done:
+		return
+	default:
+		close(w.done)
+		w.waitGroup.Wait()
+		w.report()
+		log.Println("Tags task stopped")
+	}
 }
 
 func (w *TagsWorker) perform(feed *instax.MediaFeed) {

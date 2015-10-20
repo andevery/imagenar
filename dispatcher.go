@@ -123,11 +123,17 @@ func (d *Dispatcher) perform() {
 }
 
 func (d *Dispatcher) processNotify(notify *pq.Notification) {
+	log.Printf("Received: \n%s", notify.Extra)
 	var n Notify
 	err := json.Unmarshal([]byte(notify.Extra), &n)
 	if err != nil {
 		log.Printf("Unmarshal notify: %s\n%s", err, notify.Extra)
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			d.Error(n.Data.ID, errors.New("Recovered"))
+		}
+	}()
 	if n.Table == "tasks" && n.Action != "DELETE" {
 		d.processTask(&n)
 	}
@@ -145,6 +151,9 @@ func (d *Dispatcher) processTask(notify *Notify) {
 }
 
 func (d *Dispatcher) startTask(notify *Notify) {
+	if _, ok := d.tasks[notify.Data.ID]; ok {
+		return
+	}
 	client, err := d.getClient(notify.Data.ProfilesID)
 	if err != nil {
 		log.Printf("Get client: %s\n", err)
@@ -199,35 +208,35 @@ func (d *Dispatcher) getWhitelist(notify *Notify) ([]string, error) {
 func (d *Dispatcher) startTagsTask(notify *Notify, client *autogram.Client) {
 	tags := strings.Split(notify.Data.Tags, ",")
 	worker := autogram.DefaultTagsWorker(notify.Data.ID, client, tags, d)
+	d.tasks[notify.Data.ID] = worker
 	worker.Follow = notify.Data.Follows
 	worker.Like = notify.Data.Likes
 	worker.LikesPerUser.Min = notify.Data.MinLikes
 	worker.LikesPerUser.Max = notify.Data.MaxLikes
 	worker.Start()
-	d.tasks[notify.Data.ID] = worker
 }
 
 func (d *Dispatcher) pauseTask(notify *Notify) {
 	if task, ok := d.tasks[notify.Data.ID]; ok {
-		task.Stop()
 		delete(d.tasks, notify.Data.ID)
+		task.Stop()
 		d.clients.DecTasks(notify.Data.ProfilesID)
-	}
-	_, err := d.db.Exec("UPDATE tasks SET status=$1 WHERE id=$2", PAUSED, notify.Data.ID)
-	if err != nil {
-		log.Printf("DB Exec on pause: %s\n", err)
+		_, err := d.db.Exec("UPDATE tasks SET status=$1 WHERE id=$2", PAUSED, notify.Data.ID)
+		if err != nil {
+			log.Printf("DB Exec on pause: %s\n", err)
+		}
 	}
 }
 
 func (d *Dispatcher) stopTask(notify *Notify) {
 	if task, ok := d.tasks[notify.Data.ID]; ok {
-		task.Stop()
 		delete(d.tasks, notify.Data.ID)
+		task.Stop()
 		d.clients.DecTasks(notify.Data.ProfilesID)
-	}
-	_, err := d.db.Exec("UPDATE tasks SET status=$1 WHERE id=$2", FINISHED, notify.Data.ID)
-	if err != nil {
-		log.Printf("DB Exec on stop: %s\n", err)
+		_, err := d.db.Exec("UPDATE tasks SET status=$1 WHERE id=$2", FINISHED, notify.Data.ID)
+		if err != nil {
+			log.Printf("DB Exec on stop: %s\n", err)
+		}
 	}
 }
 

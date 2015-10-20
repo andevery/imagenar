@@ -3,19 +3,27 @@ package autogram
 import (
 	"github.com/andevery/instax"
 	"log"
+	"sync"
 )
 
 type UnfollowWorker struct {
-	ID      int64
-	exclude map[string]bool
-	count   int
-	client  *Client
-	send    Reporter
-	done    chan bool
+	ID        int64
+	exclude   map[string]bool
+	count     int
+	client    *Client
+	send      Reporter
+	done      chan bool
+	waitGroup *sync.WaitGroup
 }
 
 func NewUnfollowWorker(id int64, client *Client, whitelist []string, reporter Reporter) *UnfollowWorker {
-	w := &UnfollowWorker{ID: id, client: client, done: make(chan bool), send: reporter}
+	w := &UnfollowWorker{
+		ID:        id,
+		client:    client,
+		done:      make(chan bool),
+		send:      reporter,
+		waitGroup: &sync.WaitGroup{},
+	}
 	w.exclude = make(map[string]bool)
 	for _, username := range whitelist {
 		w.exclude[username] = true
@@ -26,6 +34,7 @@ func NewUnfollowWorker(id int64, client *Client, whitelist []string, reporter Re
 
 func (w *UnfollowWorker) Start() {
 	go func() {
+		defer w.waitGroup.Done()
 		var users []instax.UserShort
 		feed := w.client.Api().Follows("self")
 		for u, err := feed.Next(); err != instax.EOF; u, err = feed.Next() {
@@ -58,21 +67,24 @@ func (w *UnfollowWorker) Start() {
 			w.report()
 		}
 	}()
+	w.waitGroup.Add(1)
 	log.Println("Unfollowing task started")
 }
 
 func (w *UnfollowWorker) Stop() {
-	w.done <- true
-	<-w.done
-	close(w.done)
-	log.Println("Unfollowing task stopped")
+	select {
+	case <-w.done:
+		return
+	default:
+		close(w.done)
+		w.waitGroup.Wait()
+		log.Println("Unfollowing task stopped")
+	}
 }
 
 func (w *UnfollowWorker) stopped() bool {
 	select {
 	case <-w.done:
-		w.report()
-		w.done <- true
 		return true
 	default:
 	}
@@ -99,12 +111,6 @@ func (w *UnfollowWorker) error(err error) {
 }
 
 func (w *UnfollowWorker) fatal(err error) {
-	defer func() {
-		<-w.done
-		w.report()
-		log.Println("FATAL")
-		w.done <- true
-	}()
 	if w.send != nil {
 		w.send.Fatal(w.ID, err)
 	}
