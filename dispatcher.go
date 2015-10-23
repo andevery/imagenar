@@ -158,6 +158,7 @@ func (d *Dispatcher) startTask(notify *Notify) {
 	if err != nil {
 		log.Printf("Get client: %s\n", err)
 		d.stopTask(notify)
+		return
 	}
 	switch notify.Data.Type {
 	case UNFOLLOW:
@@ -221,10 +222,10 @@ func (d *Dispatcher) pauseTask(notify *Notify) {
 		delete(d.tasks, notify.Data.ID)
 		task.Stop()
 		d.clients.DecTasks(notify.Data.ProfilesID)
-		_, err := d.db.Exec("UPDATE tasks SET status=$1 WHERE id=$2", PAUSED, notify.Data.ID)
-		if err != nil {
-			log.Printf("DB Exec on pause: %s\n", err)
-		}
+	}
+	_, err := d.db.Exec("UPDATE tasks SET status=$1 WHERE id=$2", PAUSED, notify.Data.ID)
+	if err != nil {
+		log.Printf("DB Exec on pause: %s\n", err)
 	}
 }
 
@@ -233,10 +234,10 @@ func (d *Dispatcher) stopTask(notify *Notify) {
 		delete(d.tasks, notify.Data.ID)
 		task.Stop()
 		d.clients.DecTasks(notify.Data.ProfilesID)
-		_, err := d.db.Exec("UPDATE tasks SET status=$1 WHERE id=$2", FINISHED, notify.Data.ID)
-		if err != nil {
-			log.Printf("DB Exec on stop: %s\n", err)
-		}
+	}
+	_, err := d.db.Exec("UPDATE tasks SET status=$1 WHERE id=$2", FINISHED, notify.Data.ID)
+	if err != nil {
+		log.Printf("DB Exec on stop: %s\n", err)
 	}
 }
 
