@@ -16,7 +16,7 @@ import (
 
 const (
 	Scheme    = "https"
-	Host      = "instagram.com"
+	Host      = "www.instagram.com"
 	Namespace = "web"
 )
 
