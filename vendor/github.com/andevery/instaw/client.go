@@ -90,11 +90,6 @@ func (c *Client) do(method, path, referer string) error {
 		return err
 	}
 
-	log.Println(req.URL)
-	log.Println(req.Header)
-	log.Println(resp.StatusCode)
-	log.Println(string(body))
-
 	switch resp.StatusCode {
 	case 403:
 		return TooManyRequests
