@@ -90,6 +90,11 @@ func (c *Client) do(method, path, referer string) error {
 		return err
 	}
 
+	log.Println(req.URL)
+	log.Println(req.Header)
+	log.Println(resp.StatusCode)
+	log.Println(string(body))
+
 	switch resp.StatusCode {
 	case 403:
 		return TooManyRequests
@@ -184,14 +189,14 @@ func (c *Client) Like(media *instax.Media) error {
 
 func (c *Client) Follow(user *instax.User) error {
 	path := fmt.Sprintf("friendships/%s/follow/", user.ID)
-	referer := fmt.Sprintf("https://instagram.com/%s/", user.Username)
+	referer := fmt.Sprintf("https://www.instagram.com/%s/", user.Username)
 
 	return c.do("POST", path, referer)
 }
 
 func (c *Client) Unfollow(user *instax.User) error {
 	path := fmt.Sprintf("friendships/%s/unfollow/", user.ID)
-	referer := fmt.Sprintf("https://instagram.com/%s/", user.Username)
+	referer := fmt.Sprintf("https://www.instagram.com/%s/", user.Username)
 
 	return c.do("POST", path, referer)
 }
