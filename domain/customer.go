@@ -6,6 +6,8 @@ type CustomerRepository interface {
 }
 
 type Customer struct {
-	ID   int64
-	Name string
+	ID           int64
+	Name         string
+	Balance      float64
+	Subscription *Subscription
 }
